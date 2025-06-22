@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A canvas tool for planning and analyzing both traditional and generative AI projects">
+    <title>AI Canvas Analyzer</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Add favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+</head>
+<body>
+    <main class="container">
+        <div id="notification" class="notification"></div>
+        <header>
+            <h1>AI Canvas Analyzer</h1>
+            <p class="subtitle">Plan, analyze, and document your Traditional & Generative AI projects</p>
+            <div class="score-legend">
+                <h3>Quality Score Legend</h3>
+                <div class="legend-item">
+                    <span class="legend-color high"></span>
+                    <span class="legend-text">High (70-100%): Excellent content, specific and comprehensive</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color medium"></span>
+                    <span class="legend-text">Medium (40-69%): Good content, could use more detail</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color low"></span>
+                    <span class="legend-text">Low (0-39%): Needs significant improvement</span>
+                </div>
+            </div>
+        </header>
+
+        <form class="canvas" id="canvas-form">
+            <section class="section" id="task-type" aria-labelledby="task-type-heading">
+                <h2 id="task-type-heading">1. Task Type (Prediction/Generation)</h2>
+                <textarea
+                    name="task-type"
+                    placeholder="What is the core AI task? (e.g., predict, classify, generate text/images/code, etc.)"
+                    aria-label="Task type description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="human-judgment" aria-labelledby="human-judgment-heading">
+                <h2 id="human-judgment-heading">2. Human Judgment & Oversight</h2>
+                <textarea
+                    name="human-judgment"
+                    placeholder="What human review, judgment, or approval is required for the AI output?"
+                    aria-label="Human judgment description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="action" aria-labelledby="action-heading">
+                <h2 id="action-heading">3. Action</h2>
+                <textarea
+                    name="action"
+                    placeholder="What action will be taken based on the AI output? (e.g., decision, publish, use internally)"
+                    aria-label="Action description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="outcome" aria-labelledby="outcome-heading">
+                <h2 id="outcome-heading">4. Outcome</h2>
+                <textarea
+                    name="outcome"
+                    placeholder="What is the desired outcome or impact of using the AI output?"
+                    aria-label="Outcome description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="input-data" aria-labelledby="input-data-heading">
+                <h2 id="input-data-heading">5. Input Data / Prompts / Features</h2>
+                <textarea
+                    name="input-data"
+                    placeholder="What input data, features, or prompts are needed to guide the AI?"
+                    aria-label="Input data description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="training-data" aria-labelledby="training-data-heading">
+                <h2 id="training-data-heading">6. Training/Fine-tuning Data</h2>
+                <textarea
+                    name="training-data"
+                    placeholder="What data is used to train, pre-train, or fine-tune the AI model?"
+                    aria-label="Training data description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="feedback-loop" aria-labelledby="feedback-loop-heading">
+                <h2 id="feedback-loop-heading">7. Feedback Loop</h2>
+                <textarea
+                    name="feedback-loop"
+                    placeholder="How will you collect feedback and use it to improve future AI outputs?"
+                    aria-label="Feedback loop description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="value-proposition" aria-labelledby="value-proposition-heading">
+                <h2 id="value-proposition-heading">8. Value Proposition</h2>
+                <textarea
+                    name="value-proposition"
+                    placeholder="What is the business value of the AI solution? (e.g., efficiency, creativity, cost savings, accuracy)"
+                    aria-label="Value proposition description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="risks-responsible-ai" aria-labelledby="risks-responsible-ai-heading">
+                <h2 id="risks-responsible-ai-heading">9. Risks & Responsible AI</h2>
+                <textarea
+                    name="risks-responsible-ai"
+                    placeholder="What are the unique risks (e.g., bias, hallucination, privacy, compliance) and what guardrails are needed?"
+                    aria-label="Risks and responsible AI description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="model-selection" aria-labelledby="model-selection-heading">
+                <h2 id="model-selection-heading">10. Model Selection & Prompt Engineering</h2>
+                <textarea
+                    name="model-selection"
+                    placeholder="How will you select models and/or design prompts for optimal results? (optional)"
+                    aria-label="Model selection description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="content-moderation" aria-labelledby="content-moderation-heading">
+                <h2 id="content-moderation-heading">11. Content Moderation & Quality Control</h2>
+                <textarea
+                    name="content-moderation"
+                    placeholder="What processes are in place to detect, filter, or correct inappropriate or low-quality outputs? (optional)"
+                    aria-label="Content moderation description"
+                ></textarea>
+            </section>
+
+            <section class="section" id="transparency-ux" aria-labelledby="transparency-ux-heading">
+                <h2 id="transparency-ux-heading">12. Transparency & User Experience</h2>
+                <textarea
+                    name="transparency-ux"
+                    placeholder="How will you communicate and design user interactions with the AI system? (optional)"
+                    aria-label="Transparency and user experience description"
+                ></textarea>
+            </section>
+        </form>
+
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-content">
+                <span id="sidebar-toggle" class="sidebar-toggle" title="Toggle sidebar">&times;</span>
+                <h3>Canvas Tools</h3>
+                <div class="button-group">
+                    <button id="analyze-button" type="button" aria-controls="analysis-results" title="Analyze Canvas"><span class="button-icon">🔍</span><span class="button-text">Analyze Canvas</span></button>
+                    <button id="save-button" type="button" title="Save canvas to browser storage and download as JSON"><span class="button-icon">💾</span><span class="button-text">Save Canvas</span></button>
+                    <button id="load-button" type="button" title="Load canvas from browser storage or from a JSON file"><span class="button-icon">📂</span><span class="button-text">Load Canvas</span></button>
+                    <button id="export-button" type="button" title="Export canvas as PDF for printing"><span class="button-icon">📄</span><span class="button-text">Export as PDF</span></button>
+                </div>
+
+                <div class="sidebar-info">
+                    <h4>Canvas Tools Guide</h4>
+                    <ul>
+                        <li><strong>Analyze Canvas</strong> - Uses AI to analyze your canvas content and provide recommendations for improvement.</li>
+                        <li><strong>Save Canvas</strong> - Saves your work to browser storage and downloads a JSON file that you can share or backup.</li>
+                        <li><strong>Load Canvas</strong> - Loads your work from browser storage or from a JSON file that was previously saved.</li>
+                        <li><strong>Export as PDF</strong> - Creates a printable PDF version of your canvas for sharing or documentation.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <section id="analysis-results" aria-live="polite"></section>
+
+        <!-- Info section moved to sidebar -->
+    </main>
+
+    <!-- Chat Widget -->
+    <div class="chat-widget" id="chat-widget">
+        <div class="chat-button" id="chat-button">
+            <span class="chat-icon">💬</span>
+        </div>
+        <div class="chat-container" id="chat-container">
+            <div class="chat-header">
+                <h3>AI Assistant</h3>
+                <div class="chat-header-buttons">
+                    <button class="header-button" id="clear-chat" title="Clear conversation">
+                        <span class="clear-icon">🗑️</span>
+                    </button>
+                    <button class="close-button" id="close-chat" title="Close chat">×</button>
+                </div>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be added here dynamically -->
+            </div>
+            <div class="chat-input-container">
+                <textarea
+                    id="chat-input"
+                    placeholder="Ask for suggestions to improve your canvas..."
+                    rows="2"
+                    aria-label="Type your message"
+                ></textarea>
+                <button id="send-message" aria-label="Send message">
+                    <span class="send-icon">➤</span>
+                </button>
+            </div>
+            <div class="chat-status" id="chat-status">
+                <span class="status-indicator"></span>
+                <div class="model-selection">
+                    <select id="model-selector" title="Select AI model">
+                        <option value="">Loading models...</option>
+                    </select>
+                </div>
+                <button id="check-connection" class="check-connection-btn" title="Check Ollama connection">↻</button>
+            </div>
+            <div class="chat-disclaimer">
+                <p><strong>Note:</strong> AI responses may not always be accurate. Please verify important information.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; <span id="current-year"></span> AI Canvas Analyzer Tool</p>
+    </footer>
+
+    <script src="js/script.js"></script>
+    <script src="js/chat.js"></script>
+    <script>
+        // Set current year in footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
