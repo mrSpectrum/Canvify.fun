@@ -6,6 +6,7 @@
     <meta name="description" content="A canvas tool for planning and analyzing both traditional and generative AI projects">
     <title>AI Canvas Analyzer</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/scheduler.css">
     <!-- Add favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
 </head>
@@ -148,6 +149,7 @@
                 <h3>Canvas Tools</h3>
                 <div class="button-group">
                     <button id="analyze-button" type="button" aria-controls="analysis-results" title="Analyze Canvas"><span class="button-icon">🔍</span><span class="button-text">Analyze Canvas</span></button>
+                    <button id="scheduler-button" type="button" title="Open Event Scheduler"><span class="button-icon">📅</span><span class="button-text">Event Scheduler</span></button>
                     <button id="save-button" type="button" title="Save canvas to browser storage and download as JSON"><span class="button-icon">💾</span><span class="button-text">Save Canvas</span></button>
                     <button id="load-button" type="button" title="Load canvas from browser storage or from a JSON file"><span class="button-icon">📂</span><span class="button-text">Load Canvas</span></button>
                     <button id="export-button" type="button" title="Export canvas as PDF for printing"><span class="button-icon">📄</span><span class="button-text">Export as PDF</span></button>
@@ -157,6 +159,7 @@
                     <h4>Canvas Tools Guide</h4>
                     <ul>
                         <li><strong>Analyze Canvas</strong> - Uses AI to analyze your canvas content and provide recommendations for improvement.</li>
+                        <li><strong>Event Scheduler</strong> - Create, manage, and track tasks with deadlines for your AI project.</li>
                         <li><strong>Save Canvas</strong> - Saves your work to browser storage and downloads a JSON file that you can share or backup.</li>
                         <li><strong>Load Canvas</strong> - Loads your work from browser storage or from a JSON file that was previously saved.</li>
                         <li><strong>Export as PDF</strong> - Creates a printable PDF version of your canvas for sharing or documentation.</li>
@@ -169,6 +172,88 @@
 
         <!-- Info section moved to sidebar -->
     </main>
+
+    <!-- Event Scheduler Modal -->
+    <div class="scheduler-modal" id="scheduler-modal">
+        <div class="scheduler-content">
+            <div class="scheduler-header">
+                <h2>📅 Event Scheduler</h2>
+                <div class="scheduler-controls">
+                    <div class="view-toggle-container">
+                        <label for="view-toggle">List</label>
+                        <input type="checkbox" id="view-toggle" class="view-toggle">
+                        <label for="view-toggle">Calendar</label>
+                    </div>
+                    <div class="scheduler-header-buttons">
+                        <button class="header-btn" id="add-task-btn">+ Add Task</button>
+                        <button class="header-btn" onclick="window.schedulerModule.exportTasks()">Export</button>
+                        <button class="header-btn" onclick="window.schedulerModule.importTasks()">Import</button>
+                    </div>
+                    <button class="close-scheduler" id="close-scheduler">&times;</button>
+                </div>
+            </div>
+            <div class="scheduler-body">
+                <div class="tasks-list" id="tasks-list">
+                    <!-- Tasks will be rendered here -->
+                </div>
+                <div class="calendar-view" id="calendar-view">
+                    <!-- Calendar will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div class="task-modal" id="task-modal">
+        <div class="task-modal-content">
+            <div class="task-modal-header">
+                <h3>Add New Task</h3>
+                <button class="close-task-modal" id="close-task-modal">&times;</button>
+            </div>
+            <form class="task-form" id="task-form">
+                <div class="form-group">
+                    <label for="task-title">Task Title *</label>
+                    <input type="text" id="task-title" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-description">Description</label>
+                    <textarea id="task-description" name="description" placeholder="Optional task description..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-deadline">Deadline *</label>
+                        <input type="date" id="task-deadline" name="deadline" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-priority">Priority</label>
+                        <select id="task-priority" name="priority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-assignee">Assignee</label>
+                        <input type="text" id="task-assignee" name="assignee" placeholder="Optional assignee name...">
+                    </div>
+                    <div class="form-group">
+                        <label for="task-status">Status</label>
+                        <select id="task-status" name="status">
+                            <option value="pending" selected>Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+            <div class="task-modal-actions">
+                <button type="button" class="btn-secondary" id="cancel-task">Cancel</button>
+                <button type="button" class="btn-primary" id="save-task">Save Task</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Chat Widget -->
     <div class="chat-widget" id="chat-widget">
@@ -220,6 +305,7 @@
 
     <script src="js/script.js"></script>
     <script src="js/chat.js"></script>
+    <script src="js/scheduler.js"></script>
     <script>
         // Set current year in footer
         document.getElementById('current-year').textContent = new Date().getFullYear();
