@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node js/proxy-server.js",
     "build": "echo 'Build completed - this is a static HTML project'",
-    "dev": "python -m http.server 8000",
+    "dev": "npx serve -s . -l 8000",
     "proxy": "node js/proxy-server.js"
   },
   "keywords": [
@@ -18,6 +18,8 @@
   ],
   "author": "",
   "license": "MIT",
-  "devDependencies": {},
+  "devDependencies": {
+    "serve": "^14.2.1"
+  },
   "dependencies": {}
 }
