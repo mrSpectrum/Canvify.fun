@@ -140,12 +140,18 @@ document.addEventListener('DOMContentLoaded', () => {
             priority,
             assignee,
             status,
-            createdAt: editingTaskId ? tasks.find(t => t.id === editingTaskId).createdAt : new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
 
         if (editingTaskId) {
             // Update existing task
+            const existingTask = tasks.find(t => t.id === editingTaskId);
+            if (!existingTask) {
+                showNotification('Task to edit was not found', true);
+                return;
+            }
+            
+            taskData.createdAt = existingTask.createdAt;
             const taskIndex = tasks.findIndex(t => t.id === editingTaskId);
             tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
             showNotification('Task updated successfully!');
@@ -153,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Create new task
             const newTask = {
                 id: generateTaskId(),
+                createdAt: new Date().toISOString(),
                 ...taskData
             };
             tasks.push(newTask);
