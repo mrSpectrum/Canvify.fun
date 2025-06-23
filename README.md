@@ -20,3 +20,13 @@ Project Structure Update
 │   └── proxy-server.js # Node.js proxy for Ollama API
 └── README.md           # Project documentation
 
+# Project Structure
+
+├── index.html          # Main application entry point
+├── css/
+│   └── style.css       # Application styling
+├── js/
+│   ├── script.js       # Main canvas functionality
+│   ├── chat.js         # AI assistant and chat widget
+│   └── proxy-server.js  # Node.js proxy for Ollama API
+└── README.md           # Project documentation
