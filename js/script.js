@@ -68,13 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebarToggle.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
         // Update toggle button text
-        sidebarToggle.innerHTML = sidebar.classList.contains('collapsed') ? '&gt;' : '&times;';
+        sidebarToggle.innerHTML = sidebar.classList.contains('collapsed') ? '>' : '&times;';
         // Store sidebar state in localStorage
         localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
     });
 
     // Set initial toggle button text based on sidebar state
-    sidebarToggle.innerHTML = sidebar.classList.contains('collapsed') ? '&gt;' : '&times;';
+    sidebarToggle.innerHTML = sidebar.classList.contains('collapsed') ? '>' : '&times;';
 
     // Event Listeners
     analyzeButton.addEventListener('click', analyzeCanvas);
@@ -108,8 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Get all data from the canvas
             const canvasData = getCanvasData();
 
-            // We'll just check for non-empty sections
-
             // Check if there are any non-empty sections
             const nonEmptySections = Object.entries(canvasData)
                 .filter(([_, data]) => data.textarea && data.textarea.trim() !== '');
@@ -123,21 +121,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // Format canvas data for the LLM
             const formattedData = formatCanvasForLLM(canvasData);
 
-            // Generate analysis using LLM
+            // Generate analysis using OpenAI API
             try {
-                const analysisResponse = await getLLMAnalysis(formattedData);
+                const analysisResponse = await getAIAnalysis(formattedData);
 
                 // Display the analysis with a simple header
                 let analysisHTML = '<h3>Recommendations</h3>';
 
-                // We'll skip displaying empty sections warning in the analysis section
-                // since we're focusing only on overall recommendations
-
-                // Process and display LLM recommendations
+                // Process and display AI recommendations
                 analysisHTML += '<div class="ai-recommendations">';
 
-                // Parse and format the LLM response
-                const formattedResponse = formatLLMResponse(analysisResponse);
+                // Parse and format the AI response
+                const formattedResponse = formatAIResponse(analysisResponse);
                 analysisHTML += formattedResponse;
 
                 analysisHTML += '</div>';
@@ -150,8 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Scroll to analysis results
                 analysisResultsDiv.scrollIntoView({ behavior: 'smooth' });
-            } catch (llmError) {
-                console.error('LLM analysis error:', llmError);
+            } catch (aiError) {
+                console.error('AI analysis error:', aiError);
 
                 // Clear any existing scores
                 currentAnalysisScores = {};
@@ -160,10 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Reinitialize with 0% scores
                 initializeScores();
 
-                // Fallback to basic analysis if LLM fails
-                let analysisHTML = '<h3>Recommendations</h3><p class="warning">⚠️ Could not generate AI recommendations.</p>';
-
-                // Skip displaying empty sections warning
+                // Fallback to basic analysis if AI fails
+                let analysisHTML = '<h3>Recommendations</h3><p class="warning">⚠️ Could not generate AI recommendations. Please check your API configuration.</p>';
 
                 // Basic checks
                 if (canvasData['value-proposition']?.textarea) {
@@ -172,16 +165,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     analysisHTML += '<p class="warning">⚠️ Value proposition is not clearly defined</p>';
                 }
 
-                if (canvasData['problem']?.textarea) {
-                    analysisHTML += '<p>✅ Problem statement is defined</p>';
+                if (canvasData['task-type']?.textarea) {
+                    analysisHTML += '<p>✅ Task type is defined</p>';
                 } else {
-                    analysisHTML += '<p class="warning">⚠️ Problem statement is missing</p>';
+                    analysisHTML += '<p class="warning">⚠️ Task type is missing</p>';
                 }
 
-                if (canvasData['ethical-considerations']?.textarea) {
-                    analysisHTML += '<p>✅ Ethical considerations are addressed</p>';
+                if (canvasData['risks-responsible-ai']?.textarea) {
+                    analysisHTML += '<p>✅ Risks and responsible AI considerations are addressed</p>';
                 } else {
-                    analysisHTML += '<p class="warning">⚠️ Ethical considerations are not addressed</p>';
+                    analysisHTML += '<p class="warning">⚠️ Risks and responsible AI considerations are not addressed</p>';
                 }
 
                 analysisResultsDiv.innerHTML = analysisHTML;
@@ -201,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Format canvas data for LLM analysis
+     * Format canvas data for AI analysis
      */
     function formatCanvasForLLM(canvasData) {
         let formattedData = '';
@@ -233,8 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 formattedData += `[EMPTY SECTION - NO CONTENT]\n`;
             }
-
-            // No additional data for data-training section anymore
 
             formattedData += '\n';
         });
@@ -343,9 +334,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Format the LLM response into HTML with quality scores and recommendations
+     * Format the AI response into HTML with quality scores and recommendations
      */
-    function formatLLMResponse(response) {
+    function formatAIResponse(response) {
         let html = '';
 
         // Create a new object to store the current scores
@@ -360,11 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
             section.trim().startsWith('Quality Scores'));
 
         if (qualityScoreSection) {
-            // We'll extract scores but not display them in the analysis section
-            // They will be shown on the cards instead
-
             // Extract scores using regex - with multiple patterns to handle different formats
-            // This makes our parsing more robust to slight variations in LLM output
             const scorePatterns = [
                 /-\s*(.*?):\s*(\d+)%/g,  // Markdown list format: - Section: 80%
                 /([^\n:]+):\s*(\d+)%/g,  // Simple format: Section: 80%
@@ -391,7 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentScores[section] = score;
                     currentAnalysisScores[section] = score;
 
-                    // Determine score class for the card display (handled in displayScoresOnCards)
                     // Check for score changes for logging
                     if (previousAnalysisScores[section] !== undefined) {
                         const prevScore = previousAnalysisScores[section];
@@ -404,8 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
-                    // We'll skip creating the score bar HTML since we're displaying scores on cards
-                    // Just log for debugging
                     console.log(`Score for ${section}: ${score}%`);
                 }
 
@@ -415,27 +399,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // If no scores were found with any pattern
             if (!foundScores) {
-                console.warn('No scores found in the LLM response. This might be due to formatting issues.');
+                console.warn('No scores found in the AI response. This might be due to formatting issues.');
                 console.log('Raw response:', qualityScoreSection);
-
-                // Make sure we don't have any leftover HTML from score processing
                 html = '';
             }
-        }
-
-        // We'll skip displaying section recommendations in the analysis section
-        // since they're more relevant to individual sections
-        // Just extract them for reference
-        const sectionRecommendationsSection = mainSections.find(section =>
-            section.trim().startsWith('SECTION RECOMMENDATIONS') ||
-            section.trim().startsWith('Section Recommendations'));
-
-        if (sectionRecommendationsSection) {
-            // Just log them for debugging
-            console.log('Section recommendations found:', sectionRecommendationsSection);
-
-            // We'll skip displaying these recommendations
-            // Just extract them for potential future use
         }
 
         // Process overall recommendations - this will be the main content of our analysis section
@@ -480,12 +447,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Get LLM analysis of canvas data
+     * Get AI analysis of canvas data
      */
-    async function getLLMAnalysis(formattedData) {
-        // Ollama API configuration
-        const OLLAMA_API = 'http://localhost:3000/api';
-        const MODEL = 'cogito:3b';
+    async function getAIAnalysis(formattedData) {
+        // API configuration
+        const API_BASE = 'http://localhost:3000/api';
+        const MODEL = 'gpt-3.5-turbo';
 
         // Create prompt for analysis
         const prompt = `
@@ -505,7 +472,7 @@ For each non-empty section, provide a score using EXACTLY this format:
 
 Example:
 - Value Proposition: 75%
-- Problem: 60%
+- Task Type: 60%
 
 Rate each from 0-100% based on completeness, specificity, and quality.
 
@@ -531,8 +498,8 @@ Provide 1-3 general recommendations for improving the canvas as a whole, based O
 Make your recommendations specific, actionable, and concise. Focus on how to improve the quality and completeness of the canvas.
 `;
 
-        // Send request to Ollama
-        const response = await fetch(`${OLLAMA_API}/generate`, {
+        // Send request to API
+        const response = await fetch(`${API_BASE}/generate`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -548,7 +515,8 @@ Make your recommendations specific, actionable, and concise. Focus on how to imp
         });
 
         if (!response.ok) {
-            throw new Error('Failed to get response from Ollama');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to get response from API');
         }
 
         const data = await response.json();
@@ -1111,8 +1079,6 @@ Make your recommendations specific, actionable, and concise. Focus on how to imp
                     printContent += `<p><em>No information provided</em></p>`;
                 }
 
-                // No additional data for data-training section anymore
-
                 printContent += `
                         </div>
                     </div>
@@ -1149,8 +1115,6 @@ Make your recommendations specific, actionable, and concise. Focus on how to imp
 
             // Write to the print window and trigger print
             printWindow.document.open();
-            // Using document.write is deprecated but still the most reliable way for print windows
-            // We're using it here with the understanding that it's for a print window
             printWindow.document.write(printContent);
             printWindow.document.close();
 

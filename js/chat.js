@@ -1,6 +1,6 @@
 /**
- * Chat Widget with Ollama Integration
- * Uses the Cogito 3B model to provide AI assistance for the GenAI Canvas
+ * Chat Widget with OpenAI Integration (via proxy)
+ * Uses OpenAI models to provide AI assistance for the GenAI Canvas
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,9 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendButton = document.getElementById('send-message');
     const statusIndicator = document.querySelector('.status-indicator');
 
-    // Ollama API configuration
-    const OLLAMA_API = 'http://localhost:3000/api';
-    let MODEL = '';
+    // API configuration
+    const API_BASE = 'http://localhost:3000/api';
+    let MODEL = 'gpt-3.5-turbo';
 
     // Model selector
     const modelSelector = document.getElementById('model-selector');
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to populate model dropdown
     async function populateModelDropdown() {
         try {
-            const response = await fetch(`${OLLAMA_API}/tags`);
+            const response = await fetch(`${API_BASE}/tags`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -41,9 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Sort models alphabetically
-                models.sort((a, b) => a.name.localeCompare(b.name));
-
                 // Add each model to the dropdown
                 models.forEach(model => {
                     const option = document.createElement('option');
@@ -57,6 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         option.selected = true;
                     }
                 });
+
+                // Set default selection
+                if (MODEL) {
+                    modelSelector.value = MODEL;
+                }
 
                 // Trigger change event to update UI
                 const event = new Event('change');
@@ -73,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Chat state
     let isChatOpen = false;
-    let isOllamaAvailable = false;
+    let isAPIAvailable = false;
     let isWaitingForResponse = false;
 
     // Initialize chat
@@ -90,14 +92,14 @@ document.addEventListener('DOMContentLoaded', () => {
         MODEL = this.value;
         console.log(`Model changed to ${MODEL}`);
         // Check connection with the new model
-        checkOllamaStatus();
+        checkAPIStatus();
     });
 
     document.getElementById('check-connection').addEventListener('click', () => {
         // Add a message to indicate checking connection
-        addAIMessage("Checking connection to Ollama...");
+        addAIMessage("Checking connection to OpenAI API...");
         // Check connection
-        checkOllamaStatus();
+        checkAPIStatus();
         // Add a visual feedback by rotating the button
         const button = document.getElementById('check-connection');
         button.style.transform = 'translateY(-50%) rotate(360deg)';
@@ -105,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.style.transform = 'translateY(-50%)';
         }, 1000);
     });
+
     chatInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -137,12 +140,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // First populate the model dropdown
         await populateModelDropdown();
 
-        // Then check if Ollama is available
-        await checkOllamaStatus();
+        // Then check if API is available
+        await checkAPIStatus();
 
         // Add welcome message
         setTimeout(() => {
-            addAIMessage(`👋 Hi there! I'm your AI assistant powered by Ollama. I can help you improve your AI Canvas by providing suggestions and answering questions. What would you like help with today?`);
+            addAIMessage(`👋 Hi there! I'm your AI assistant powered by OpenAI. I can help you improve your AI Canvas by providing suggestions and answering questions. What would you like help with today?`);
         }, 500);
     }
 
@@ -155,56 +158,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isChatOpen) {
             chatInput.focus();
-            // Check Ollama status when opening chat
-            checkOllamaStatus();
+            // Check API status when opening chat
+            checkAPIStatus();
         }
     }
 
     /**
-     * Check if Ollama is available
+     * Check if API is available
      */
-    async function checkOllamaStatus() {
+    async function checkAPIStatus() {
         try {
-            console.log(`Checking Ollama connection at ${OLLAMA_API}...`);
+            console.log(`Checking API connection at ${API_BASE}...`);
 
-            const response = await fetch(`${OLLAMA_API}/tags`, {
+            const response = await fetch(`${API_BASE}/tags`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             });
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('Ollama models:', data.models.map(m => m.name));
+                console.log('Available models:', data.models.map(m => m.name));
 
                 const hasSelectedModel = data.models.some(model => model.name === MODEL);
                 console.log(`Has ${MODEL} model:`, hasSelectedModel);
 
                 if (hasSelectedModel) {
-                    isOllamaAvailable = true;
+                    isAPIAvailable = true;
                     statusIndicator.classList.remove('offline');
                     // Update the model selector to show it's connected
                     modelSelector.style.borderColor = '#4cc9f0';
-                    console.log('Ollama connection successful');
+                    console.log('API connection successful');
                 } else {
-                    throw new Error(`Model '${MODEL}' not found. Please run: ollama pull ${MODEL}`);
+                    throw new Error(`Model '${MODEL}' not found.`);
                 }
             } else {
-                console.error(`Ollama API check failed with status: ${response.status}`);
-                throw new Error(`Ollama service responded with status ${response.status}`);
+                console.error(`API check failed with status: ${response.status}`);
+                throw new Error(`API service responded with status ${response.status}`);
             }
         } catch (error) {
-            console.error('Ollama connection error:', error);
-            isOllamaAvailable = false;
+            console.error('API connection error:', error);
+            isAPIAvailable = false;
             statusIndicator.classList.add('offline');
             // Reset the model selector to show it's offline
             modelSelector.style.borderColor = '#f72585';
 
             // Add error message if chat is open and no messages yet
             if (isChatOpen && chatMessages.children.length <= 1) {
-                addAIMessage(`⚠️ I couldn't connect to Ollama. Please make sure:
-1. The proxy server is running: node js/proxy-server.js
-2. Ollama is installed and running: ollama serve
-3. You have at least one model installed (run: ollama pull ${MODEL || 'cogito:3b'})`);
+                addAIMessage(`⚠️ I couldn't connect to the OpenAI API. Please make sure:
+1. The proxy server is running: npm run proxy
+2. Your OpenAI API key is configured
+3. You have internet connectivity`);
             }
         }
     }
@@ -223,10 +226,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clear input
         chatInput.value = '';
 
-        // Check if Ollama is available
-        if (!isOllamaAvailable) {
-            addAIMessage("⚠️ I can't process your request because Ollama is not available. Please check your connection and try again.");
-            checkOllamaStatus();
+        // Check if API is available
+        if (!isAPIAvailable) {
+            addAIMessage("⚠️ I can't process your request because the OpenAI API is not available. Please check your connection and API key, then try again.");
+            checkAPIStatus();
             return;
         }
 
@@ -255,9 +258,9 @@ Focus on helping the user improve their canvas entries and think more deeply abo
 User message: ${message}
 `;
 
-            // Send request to Ollama
-            console.log("Sending explanation request to Ollama...");
-            const response = await fetch(`${OLLAMA_API}/generate`, {
+            // Send request to API
+            console.log("Sending request to OpenAI API...");
+            const response = await fetch(`${API_BASE}/generate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -272,10 +275,11 @@ User message: ${message}
                 })
             });
 
-            console.log('Ollama response status:', response.status);
+            console.log('API response status:', response.status);
 
             if (!response.ok) {
-                throw new Error('Failed to get response from Ollama');
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to get response from API');
             }
 
             const data = await response.json();
@@ -294,10 +298,12 @@ User message: ${message}
 
             // Add detailed error message
             if (error.message.includes('Failed to fetch')) {
-                addAIMessage(`Error: Could not connect to the AI service. Please ensure the proxy server is running:\n\nnode js/proxy-server.js`);
-                isOllamaAvailable = false;
+                addAIMessage(`Error: Could not connect to the AI service. Please ensure the proxy server is running:\n\nnpm run proxy`);
+                isAPIAvailable = false;
                 // Re-check connection
-                checkOllamaStatus();
+                checkAPIStatus();
+            } else if (error.message.includes('API key')) {
+                addAIMessage(`Error: OpenAI API key not configured. Please set your OPENAI_API_KEY environment variable or update the proxy server configuration.`);
             } else {
                 addAIMessage(`Sorry, I encountered an error while processing your request: ${error.message}. Please try again later.`);
             }
@@ -455,8 +461,6 @@ User message: ${message}
             } else {
                 context += `[Empty]\n`;
             }
-
-            // No additional data for data-training section anymore
 
             context += '\n';
         });
