@@ -1,0 +1,23 @@
+{
+  "name": "ai-canvas-analyzer",
+  "version": "1.0.0",
+  "description": "A canvas tool for planning and analyzing both traditional and generative AI projects",
+  "main": "index.html",
+  "scripts": {
+    "start": "node js/proxy-server.js",
+    "build": "echo 'Build completed - this is a static HTML project'",
+    "dev": "python -m http.server 8000",
+    "proxy": "node js/proxy-server.js"
+  },
+  "keywords": [
+    "ai",
+    "canvas",
+    "analyzer",
+    "planning",
+    "generative-ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}
