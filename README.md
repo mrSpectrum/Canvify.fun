@@ -1,5 +1,7 @@
 # Canvify.fun - AI Canvas Analyzer with Event Scheduler
 
+[![Built with Bolt](https://img.shields.io/badge/Built%20with-Bolt.new-blue?style=for-the-badge&logo=lightning&logoColor=white)](https://bolt.new)
+
 A comprehensive tool for planning, analyzing, and managing AI projects with an integrated event scheduler for task management and project tracking.
 
 ## 🚀 Features
@@ -214,3 +216,5 @@ If you encounter any issues or have questions:
 **Made with ❤️ for the AI community**
 
 Transform your AI project planning with Canvify.fun - where strategic thinking meets practical execution.
+
+**Built with [Bolt.new](https://bolt.new) ⚡**
