@@ -97,88 +97,117 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     };
 
+    /**
+     * Check if all required canvas sections are filled
+     */
+    function checkCanvasCompletion() {
+        const canvasData = getCanvasData();
+        const requiredSections = [
+            'task-type', 'human-judgment', 'action', 'outcome', 
+            'input-data', 'training-data', 'feedback-loop', 
+            'value-proposition', 'risks-responsible-ai'
+        ];
+        
+        const filledSections = requiredSections.filter(sectionId => {
+            const sectionData = canvasData[sectionId];
+            return sectionData && sectionData.textarea && sectionData.textarea.trim() !== '';
+        });
+        
+        return {
+            total: requiredSections.length,
+            filled: filledSections.length,
+            isComplete: filledSections.length === requiredSections.length,
+            missingSections: requiredSections.filter(sectionId => {
+                const sectionData = canvasData[sectionId];
+                return !sectionData || !sectionData.textarea || sectionData.textarea.trim() === '';
+            })
+        };
+    }
+
+    /**
+     * Get section name from ID
+     */
+    function getSectionName(sectionId) {
+        const sectionNames = {
+            'task-type': 'Task Type',
+            'human-judgment': 'Human Judgment & Oversight',
+            'action': 'Action',
+            'outcome': 'Outcome',
+            'input-data': 'Input Data / Prompts / Features',
+            'training-data': 'Training/Fine-tuning Data',
+            'feedback-loop': 'Feedback Loop',
+            'value-proposition': 'Value Proposition',
+            'risks-responsible-ai': 'Risks & Responsible AI',
+            'model-selection': 'Model Selection & Prompt Engineering',
+            'content-moderation': 'Content Moderation & Quality Control',
+            'transparency-ux': 'Transparency & User Experience'
+        };
+        return sectionNames[sectionId] || sectionId;
+    }
+
     // Analyze canvas functionality
     async function analyzeCanvas() {
         try {
-            // Show loading state
-            analysisResultsDiv.innerHTML = '<h3>Canvas Analysis</h3><div class="loading-spinner"><div></div><div></div><div></div></div><p>Generating AI recommendations...</p>';
-            analysisResultsDiv.style.display = 'block';
-            analysisResultsDiv.scrollIntoView({ behavior: 'smooth' });
-
-            // Get all data from the canvas
-            const canvasData = getCanvasData();
-
-            // Check if there are any non-empty sections
-            const nonEmptySections = Object.entries(canvasData)
-                .filter(([_, data]) => data.textarea && data.textarea.trim() !== '');
-
-            if (nonEmptySections.length === 0) {
-                // If all sections are empty, show a message
-                analysisResultsDiv.innerHTML = '<h3>Canvas Analysis</h3><p class="warning">⚠️ All sections are empty. Please fill in at least one section before analyzing.</p>';
+            // Check canvas completion first
+            const completionStatus = checkCanvasCompletion();
+            
+            if (!completionStatus.isComplete) {
+                // Show completion warning
+                analysisResultsDiv.innerHTML = `
+                    <h3>Canvas Analysis</h3>
+                    <div class="completion-warning">
+                        <h4>⚠️ Canvas Incomplete</h4>
+                        <p>You've filled <strong>${completionStatus.filled} out of ${completionStatus.total}</strong> required sections.</p>
+                        <p><strong>Missing sections:</strong></p>
+                        <ul>
+                            ${completionStatus.missingSections.map(id => `<li>${getSectionName(id)}</li>`).join('')}
+                        </ul>
+                        <p>💡 <strong>Recommendation:</strong> Fill out all required sections for the most comprehensive analysis and quality scores.</p>
+                        <div style="margin-top: 15px;">
+                            <button onclick="document.getElementById('analysis-results').style.display='none'" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 10px;">Cancel</button>
+                            <button onclick="window.proceedWithPartialAnalysis()" style="background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Analyze Anyway</button>
+                        </div>
+                    </div>
+                `;
+                analysisResultsDiv.style.display = 'block';
+                analysisResultsDiv.scrollIntoView({ behavior: 'smooth' });
+                
+                // Add CSS for completion warning
+                if (!document.getElementById('completion-warning-styles')) {
+                    const style = document.createElement('style');
+                    style.id = 'completion-warning-styles';
+                    style.textContent = `
+                        .completion-warning {
+                            background-color: #fff3cd;
+                            border: 1px solid #ffeaa7;
+                            border-radius: 8px;
+                            padding: 20px;
+                            margin: 15px 0;
+                        }
+                        .completion-warning h4 {
+                            color: #856404;
+                            margin-top: 0;
+                            margin-bottom: 10px;
+                        }
+                        .completion-warning p {
+                            color: #856404;
+                            margin-bottom: 10px;
+                        }
+                        .completion-warning ul {
+                            color: #856404;
+                            margin-left: 20px;
+                            margin-bottom: 15px;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
                 return;
             }
 
-            // Format canvas data for the LLM
-            const formattedData = formatCanvasForLLM(canvasData);
+            // Proceed with full analysis
+            await performAnalysis();
 
-            // Generate analysis using OpenAI API
-            try {
-                const analysisResponse = await getAIAnalysis(formattedData);
-
-                // Display the analysis with a simple header
-                let analysisHTML = '<h3>Recommendations</h3>';
-
-                // Process and display AI recommendations
-                analysisHTML += '<div class="ai-recommendations">';
-
-                // Parse and format the AI response
-                const formattedResponse = formatAIResponse(analysisResponse);
-                analysisHTML += formattedResponse;
-
-                analysisHTML += '</div>';
-
-                // Display the analysis
-                analysisResultsDiv.innerHTML = analysisHTML;
-
-                // Display scores on section cards
-                displayScoresOnCards();
-
-                // Scroll to analysis results
-                analysisResultsDiv.scrollIntoView({ behavior: 'smooth' });
-            } catch (aiError) {
-                console.error('AI analysis error:', aiError);
-
-                // Clear any existing scores
-                currentAnalysisScores = {};
-                document.querySelectorAll('.score-container').forEach(el => el.remove());
-
-                // Reinitialize with 0% scores
-                initializeScores();
-
-                // Fallback to basic analysis if AI fails
-                let analysisHTML = '<h3>Recommendations</h3><p class="warning">⚠️ Could not generate AI recommendations. Please check your API configuration.</p>';
-
-                // Basic checks
-                if (canvasData['value-proposition']?.textarea) {
-                    analysisHTML += '<p>✅ Value proposition is defined</p>';
-                } else {
-                    analysisHTML += '<p class="warning">⚠️ Value proposition is not clearly defined</p>';
-                }
-
-                if (canvasData['task-type']?.textarea) {
-                    analysisHTML += '<p>✅ Task type is defined</p>';
-                } else {
-                    analysisHTML += '<p class="warning">⚠️ Task type is missing</p>';
-                }
-
-                if (canvasData['risks-responsible-ai']?.textarea) {
-                    analysisHTML += '<p>✅ Risks and responsible AI considerations are addressed</p>';
-                } else {
-                    analysisHTML += '<p class="warning">⚠️ Risks and responsible AI considerations are not addressed</p>';
-                }
-
-                analysisResultsDiv.innerHTML = analysisHTML;
-            }
         } catch (error) {
             console.error('Analysis error:', error);
             showNotification('Error analyzing canvas: ' + error.message, true);
@@ -192,6 +221,96 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeScores();
         }
     }
+
+    /**
+     * Perform the actual analysis
+     */
+    async function performAnalysis() {
+        // Show loading state
+        analysisResultsDiv.innerHTML = '<h3>Canvas Analysis</h3><div class="loading-spinner"><div></div><div></div><div></div></div><p>Generating AI recommendations...</p>';
+        analysisResultsDiv.style.display = 'block';
+        analysisResultsDiv.scrollIntoView({ behavior: 'smooth' });
+
+        // Get all data from the canvas
+        const canvasData = getCanvasData();
+
+        // Check if there are any non-empty sections
+        const nonEmptySections = Object.entries(canvasData)
+            .filter(([_, data]) => data.textarea && data.textarea.trim() !== '');
+
+        if (nonEmptySections.length === 0) {
+            // If all sections are empty, show a message
+            analysisResultsDiv.innerHTML = '<h3>Canvas Analysis</h3><p class="warning">⚠️ All sections are empty. Please fill in at least one section before analyzing.</p>';
+            return;
+        }
+
+        // Format canvas data for the LLM
+        const formattedData = formatCanvasForLLM(canvasData);
+
+        // Generate analysis using OpenAI API
+        try {
+            const analysisResponse = await getAIAnalysis(formattedData);
+
+            // Display the analysis with a simple header
+            let analysisHTML = '<h3>Recommendations</h3>';
+
+            // Process and display AI recommendations
+            analysisHTML += '<div class="ai-recommendations">';
+
+            // Parse and format the AI response
+            const formattedResponse = formatAIResponse(analysisResponse);
+            analysisHTML += formattedResponse;
+
+            analysisHTML += '</div>';
+
+            // Display the analysis
+            analysisResultsDiv.innerHTML = analysisHTML;
+
+            // Display scores on section cards
+            displayScoresOnCards();
+
+            // Scroll to analysis results
+            analysisResultsDiv.scrollIntoView({ behavior: 'smooth' });
+        } catch (aiError) {
+            console.error('AI analysis error:', aiError);
+
+            // Clear any existing scores
+            currentAnalysisScores = {};
+            document.querySelectorAll('.score-container').forEach(el => el.remove());
+
+            // Reinitialize with 0% scores
+            initializeScores();
+
+            // Fallback to basic analysis if AI fails
+            let analysisHTML = '<h3>Recommendations</h3><p class="warning">⚠️ Could not generate AI recommendations. Please check your API configuration.</p>';
+
+            // Basic checks
+            if (canvasData['value-proposition']?.textarea) {
+                analysisHTML += '<p>✅ Value proposition is defined</p>';
+            } else {
+                analysisHTML += '<p class="warning">⚠️ Value proposition is not clearly defined</p>';
+            }
+
+            if (canvasData['task-type']?.textarea) {
+                analysisHTML += '<p>✅ Task type is defined</p>';
+            } else {
+                analysisHTML += '<p class="warning">⚠️ Task type is missing</p>';
+            }
+
+            if (canvasData['risks-responsible-ai']?.textarea) {
+                analysisHTML += '<p>✅ Risks and responsible AI considerations are addressed</p>';
+            } else {
+                analysisHTML += '<p class="warning">⚠️ Risks and responsible AI considerations are not addressed</p>';
+            }
+
+            analysisResultsDiv.innerHTML = analysisHTML;
+        }
+    }
+
+    // Expose function to global scope for the "Analyze Anyway" button
+    window.proceedWithPartialAnalysis = async function() {
+        await performAnalysis();
+    };
 
     /**
      * Format canvas data for AI analysis

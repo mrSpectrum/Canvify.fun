@@ -5,8 +5,8 @@ const fetch = require('node-fetch');
 const PORT = 3000;
 const OPENAI_API_URL = 'https://api.openai.com/v1';
 
-// You'll need to set this environment variable or replace with your API key
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'your-openai-api-key-here';
+// API key will be updated dynamically
+let OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 
 // Create the server
 const server = http.createServer(async (req, res) => {
@@ -41,6 +41,17 @@ const server = http.createServer(async (req, res) => {
     try {
       body = Buffer.concat(body).toString();
       
+      // Handle API key update endpoint
+      if (path === '/api/update-key') {
+        const requestData = JSON.parse(body);
+        OPENAI_API_KEY = requestData.apiKey;
+        console.log('API key updated successfully');
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+        return;
+      }
+      
       // Handle different API endpoints
       if (path === '/api/tags') {
         // Mock the Ollama tags endpoint for OpenAI models
@@ -62,10 +73,10 @@ const server = http.createServer(async (req, res) => {
         const ollamaRequest = JSON.parse(body);
         
         // Check if API key is set
-        if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your-openai-api-key-here') {
+        if (!OPENAI_API_KEY) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
-            error: 'OpenAI API key not configured. Please set OPENAI_API_KEY environment variable or update the proxy server.'
+            error: 'OpenAI API key not configured. Please set your API key in the chat interface.'
           }));
           return;
         }
@@ -103,9 +114,19 @@ const server = http.createServer(async (req, res) => {
         if (!openaiResponse.ok) {
           const errorText = await openaiResponse.text();
           console.error('OpenAI API error:', errorText);
+          
+          let errorMessage = 'OpenAI API error';
+          if (openaiResponse.status === 401) {
+            errorMessage = 'Invalid API key. Please check your OpenAI API key.';
+          } else if (openaiResponse.status === 429) {
+            errorMessage = 'Rate limit exceeded. Please try again later.';
+          } else if (openaiResponse.status === 402) {
+            errorMessage = 'Insufficient credits. Please check your OpenAI account billing.';
+          }
+          
           res.writeHead(openaiResponse.status, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
-            error: `OpenAI API error: ${errorText}`
+            error: errorMessage
           }));
           return;
         }
@@ -141,11 +162,10 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`Proxy server running at http://localhost:${PORT}`);
   console.log(`Proxying requests to OpenAI API`);
-  console.log('Make sure to set your OPENAI_API_KEY environment variable!');
   
-  if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your-openai-api-key-here') {
-    console.log('\n⚠️  WARNING: OpenAI API key not configured!');
-    console.log('Set your API key by running: export OPENAI_API_KEY=your_actual_api_key');
-    console.log('Or update the OPENAI_API_KEY variable in js/proxy-server.js');
+  if (OPENAI_API_KEY) {
+    console.log('✅ OpenAI API key configured from environment variable');
+  } else {
+    console.log('⚠️  No API key found in environment. Users can set it through the chat interface.');
   }
 });
