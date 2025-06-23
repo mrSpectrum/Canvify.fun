@@ -91,11 +91,35 @@ const server = http.createServer(async (req, res) => {
           }));
           return;
         }
+
+        // Validate API key format
+        if (!OPENAI_API_KEY.startsWith('sk-')) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: 'Invalid API key format. OpenAI API keys should start with "sk-".'
+          }));
+          return;
+        }
         
         // Map model names
         let openaiModel = 'gpt-3.5-turbo';
         if (ollamaRequest.model && ollamaRequest.model.includes('gpt-4')) {
           openaiModel = ollamaRequest.model;
+        }
+
+        // Validate and clean the prompt
+        let prompt = ollamaRequest.prompt;
+        if (!prompt || typeof prompt !== 'string') {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: 'Invalid or missing prompt in request.'
+          }));
+          return;
+        }
+
+        // Truncate very long prompts to avoid token limits
+        if (prompt.length > 12000) {
+          prompt = prompt.substring(0, 12000) + '\n\n[Content truncated due to length]';
         }
         
         const openaiRequest = {
@@ -103,56 +127,106 @@ const server = http.createServer(async (req, res) => {
           messages: [
             {
               role: 'user',
-              content: ollamaRequest.prompt
+              content: prompt
             }
           ],
-          temperature: ollamaRequest.options?.temperature || 0.7,
-          max_tokens: 2000
+          temperature: Math.min(Math.max(ollamaRequest.options?.temperature || 0.7, 0), 2),
+          max_tokens: 1500, // Reduced to avoid hitting limits
+          top_p: 1,
+          frequency_penalty: 0,
+          presence_penalty: 0
         };
         
         console.log(`🤖 Making OpenAI API request with model: ${openaiModel}`);
+        console.log(`📝 Prompt length: ${prompt.length} characters`);
         
-        // Make request to OpenAI
-        const openaiResponse = await fetch(`${OPENAI_API_URL}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`
-          },
-          body: JSON.stringify(openaiRequest)
-        });
-        
-        if (!openaiResponse.ok) {
-          const errorText = await openaiResponse.text();
-          console.error('❌ OpenAI API error:', errorText);
+        try {
+          // Make request to OpenAI with timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+          const openaiResponse = await fetch(`${OPENAI_API_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'User-Agent': 'AI-Canvas-Analyzer/1.0'
+            },
+            body: JSON.stringify(openaiRequest),
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
           
-          let errorMessage = 'OpenAI API error';
-          if (openaiResponse.status === 401) {
-            errorMessage = 'Invalid API key. Please check your OpenAI API key.';
-          } else if (openaiResponse.status === 429) {
-            errorMessage = 'Rate limit exceeded. Please try again later.';
-          } else if (openaiResponse.status === 402) {
-            errorMessage = 'Insufficient credits. Please check your OpenAI account billing.';
+          if (!openaiResponse.ok) {
+            const errorText = await openaiResponse.text();
+            console.error('❌ OpenAI API error:', openaiResponse.status, errorText);
+            
+            let errorMessage = 'OpenAI API error';
+            let statusCode = openaiResponse.status;
+            
+            try {
+              const errorData = JSON.parse(errorText);
+              if (errorData.error && errorData.error.message) {
+                errorMessage = errorData.error.message;
+              }
+            } catch (parseError) {
+              // If we can't parse the error, use the status text
+              errorMessage = `HTTP ${openaiResponse.status}: ${openaiResponse.statusText}`;
+            }
+
+            // Handle specific error cases
+            if (openaiResponse.status === 401) {
+              errorMessage = 'Invalid API key. Please check your OpenAI API key.';
+            } else if (openaiResponse.status === 429) {
+              errorMessage = 'Rate limit exceeded. Please try again in a few moments.';
+            } else if (openaiResponse.status === 402) {
+              errorMessage = 'Insufficient credits. Please check your OpenAI account billing.';
+            } else if (openaiResponse.status === 400) {
+              errorMessage = 'Bad request. The prompt may be too long or contain invalid content.';
+            } else if (openaiResponse.status >= 500) {
+              errorMessage = 'OpenAI service is temporarily unavailable. Please try again later.';
+            }
+            
+            res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: errorMessage
+            }));
+            return;
           }
           
-          res.writeHead(openaiResponse.status, { 'Content-Type': 'application/json' });
+          const openaiData = await openaiResponse.json();
+          console.log('✅ OpenAI API response received successfully');
+          
+          // Validate response structure
+          if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
+            throw new Error('Invalid response structure from OpenAI API');
+          }
+          
+          // Convert OpenAI response to Ollama format
+          const ollamaResponse = {
+            response: openaiData.choices[0].message.content,
+            done: true
+          };
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(ollamaResponse));
+          
+        } catch (fetchError) {
+          console.error('❌ Network error:', fetchError);
+          
+          let errorMessage = 'Network error occurred while contacting OpenAI';
+          if (fetchError.name === 'AbortError') {
+            errorMessage = 'Request timed out. Please try again with a shorter prompt.';
+          } else if (fetchError.code === 'ENOTFOUND' || fetchError.code === 'ECONNREFUSED') {
+            errorMessage = 'Cannot connect to OpenAI. Please check your internet connection.';
+          }
+          
+          res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             error: errorMessage
           }));
-          return;
         }
-        
-        const openaiData = await openaiResponse.json();
-        console.log('✅ OpenAI API response received successfully');
-        
-        // Convert OpenAI response to Ollama format
-        const ollamaResponse = {
-          response: openaiData.choices[0].message.content,
-          done: true
-        };
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(ollamaResponse));
         return;
       }
       
