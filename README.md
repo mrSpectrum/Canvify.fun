@@ -9,3 +9,17 @@ Key Features of the Scheduler
     Notifications: Alerts for upcoming deadlines to keep users informed.
     Data Persistence: Save and load scheduled tasks using JSON format.
 
+Project Structure Update
+
+To accommodate the new scheduler feature, the project structure will be updated as follows:
+├── index.html          # Main application entry point
+├── css/
+│   ├── style.css       # Application styling
+│   └── scheduler.css    # Styles for the scheduler
+├── js/
+│   ├── script.js       # Main canvas functionality
+│   ├── chat.js         # AI assistant and chat widget
+│   ├── proxy-server.js # Node.js proxy for Ollama API
+│   └── scheduler.js     # Scheduler functionality
+└── README.md           # Project documentation
+
