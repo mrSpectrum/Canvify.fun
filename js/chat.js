@@ -64,10 +64,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /**
+     * Check if proxy server is running
+     */
+    async function checkProxyServer() {
+        try {
+            const response = await fetch(`${API_BASE}/health`, {
+                method: 'GET',
+                signal: AbortSignal.timeout(5000) // 5 second timeout
+            });
+            return response.ok;
+        } catch (error) {
+            console.error('Proxy server check failed:', error);
+            return false;
+        }
+    }
+
+    /**
      * Function to populate model dropdown with API key check
      */
     async function populateModelDropdown() {
         try {
+            // First check if proxy server is running
+            const isProxyRunning = await checkProxyServer();
+            if (!isProxyRunning) {
+                showProxyServerError();
+                return;
+            }
+
             // Check if API key is available
             if (!API_KEY) {
                 // Show API key input interface
@@ -78,7 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update proxy server with the API key
             await updateProxyAPIKey(API_KEY);
 
-            const response = await fetch(`${API_BASE}/tags`);
+            const response = await fetch(`${API_BASE}/tags`, {
+                signal: AbortSignal.timeout(10000) // 10 second timeout
+            });
 
             if (response.ok) {
                 const data = await response.json();
@@ -123,14 +148,52 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error populating model dropdown:', error);
-            // Add a default option
-            modelSelector.innerHTML = '<option value="">Error loading models</option>';
             
-            // If it's an API key issue, show the input
-            if (error.message.includes('API key') || error.message.includes('401') || error.message.includes('403')) {
-                showAPIKeyInput();
+            if (error.name === 'TimeoutError' || error.message.includes('Failed to fetch')) {
+                showProxyServerError();
+            } else {
+                // Add a default option
+                modelSelector.innerHTML = '<option value="">Error loading models</option>';
+                
+                // If it's an API key issue, show the input
+                if (error.message.includes('API key') || error.message.includes('401') || error.message.includes('403')) {
+                    showAPIKeyInput();
+                }
             }
         }
+    }
+
+    /**
+     * Show proxy server error message
+     */
+    function showProxyServerError() {
+        const errorMessage = `
+            <div class="proxy-error-container">
+                <h4>🔌 Proxy Server Not Running</h4>
+                <p>The AI assistant requires a proxy server to connect to OpenAI. Please start the proxy server:</p>
+                <div class="proxy-instructions">
+                    <ol style="padding-left: 20px; line-height: 1.6;">
+                        <li>Open a new terminal window</li>
+                        <li>Navigate to your project directory</li>
+                        <li>Run: <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">npm run proxy</code></li>
+                        <li>Wait for "Proxy server running at http://localhost:3000"</li>
+                        <li>Refresh this page or click "Check Connection"</li>
+                    </ol>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button onclick="window.chatModule.recheckConnection()" style="background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Check Connection</button>
+                </div>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">
+                    The proxy server handles secure communication with OpenAI's API.
+                </p>
+            </div>
+        `;
+        
+        chatMessages.innerHTML = errorMessage;
+        
+        // Update model selector to show proxy error
+        modelSelector.innerHTML = '<option value="">Proxy Server Required</option>';
+        statusIndicator.classList.add('offline');
     }
 
     /**
@@ -217,19 +280,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * Recheck connection
+     */
+    function recheckConnection() {
+        addAIMessage("Checking proxy server connection...");
+        setTimeout(() => {
+            initChat();
+        }, 1000);
+    }
+
+    /**
      * Update proxy server with new API key
      */
     async function updateProxyAPIKey(apiKey) {
         try {
-            await fetch(`${API_BASE}/update-key`, {
+            const response = await fetch(`${API_BASE}/update-key`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ apiKey })
+                body: JSON.stringify({ apiKey }),
+                signal: AbortSignal.timeout(10000) // 10 second timeout
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
         } catch (error) {
             console.error('Error updating API key:', error);
+            if (error.name === 'TimeoutError' || error.message.includes('Failed to fetch')) {
+                throw new Error('Cannot connect to proxy server. Please ensure it is running.');
+            }
+            throw error;
         }
     }
 
@@ -261,8 +343,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Then check if API is available
         await checkAPIStatus();
 
-        // Add welcome message only if API key is available
-        if (API_KEY) {
+        // Add welcome message only if API key is available and proxy is running
+        if (API_KEY && isAPIAvailable) {
             setTimeout(() => {
                 addAIMessage(`👋 Hi there! I'm your AI assistant powered by OpenAI. I can help you improve your AI Canvas by providing suggestions and answering questions. 
 
@@ -292,6 +374,19 @@ What would you like help with today?`);
      */
     async function checkAPIStatus() {
         try {
+            // First check if proxy server is running
+            const isProxyRunning = await checkProxyServer();
+            if (!isProxyRunning) {
+                isAPIAvailable = false;
+                statusIndicator.classList.add('offline');
+                modelSelector.style.borderColor = '#f72585';
+                
+                if (isChatOpen && chatMessages.children.length <= 1) {
+                    showProxyServerError();
+                }
+                return;
+            }
+
             if (!API_KEY) {
                 isAPIAvailable = false;
                 statusIndicator.classList.add('offline');
@@ -306,7 +401,8 @@ What would you like help with today?`);
 
             const response = await fetch(`${API_BASE}/tags`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(10000) // 10 second timeout
             });
 
             if (response.ok) {
@@ -338,7 +434,9 @@ What would you like help with today?`);
 
             // Add error message if chat is open and no messages yet
             if (isChatOpen && chatMessages.children.length <= 1) {
-                if (error.message.includes('API key') || error.message.includes('401') || error.message.includes('403')) {
+                if (error.name === 'TimeoutError' || error.message.includes('Failed to fetch') || error.message.includes('proxy server')) {
+                    showProxyServerError();
+                } else if (error.message.includes('API key') || error.message.includes('401') || error.message.includes('403')) {
                     showAPIKeyInput();
                 } else {
                     addAIMessage(`⚠️ I couldn't connect to the OpenAI API. Please make sure:
@@ -458,7 +556,8 @@ User message: ${message}
                     options: {
                         temperature: 0.7
                     }
-                })
+                }),
+                signal: AbortSignal.timeout(30000) // 30 second timeout for generation
             });
 
             console.log('API response status:', response.status);
@@ -483,16 +582,18 @@ User message: ${message}
             removeThinking(thinkingId);
 
             // Add detailed error message
-            if (error.message.includes('Failed to fetch')) {
-                addAIMessage(`Error: Could not connect to the AI service. Please ensure the proxy server is running:\n\nnpm run proxy`);
+            if (error.name === 'TimeoutError') {
+                addAIMessage(`⏱️ Request timed out. The AI service is taking too long to respond. Please try again with a shorter message.`);
+            } else if (error.message.includes('Failed to fetch')) {
+                addAIMessage(`❌ Could not connect to the AI service. Please ensure the proxy server is running:\n\nnpm run proxy`);
                 isAPIAvailable = false;
                 // Re-check connection
                 checkAPIStatus();
             } else if (error.message.includes('API key')) {
-                addAIMessage(`Error: OpenAI API key issue. Please check your API key.`);
+                addAIMessage(`❌ OpenAI API key issue. Please check your API key.`);
                 showAPIKeyInput();
             } else {
-                addAIMessage(`Sorry, I encountered an error while processing your request: ${error.message}. Please try again later.`);
+                addAIMessage(`❌ Sorry, I encountered an error while processing your request: ${error.message}. Please try again later.`);
             }
         } finally {
             isWaitingForResponse = false;
@@ -681,6 +782,7 @@ User message: ${message}
     window.chatModule = {
         saveAPIKey,
         showAPIKeyHelp,
-        showAPIKeyInput
+        showAPIKeyInput,
+        recheckConnection
     };
 });

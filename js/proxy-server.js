@@ -26,10 +26,21 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const path = url.pathname;
   
+  // Handle health check endpoint
+  if (path === '/api/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      hasApiKey: !!OPENAI_API_KEY 
+    }));
+    return;
+  }
+  
   // Only proxy requests to /api/*
   if (!path.startsWith('/api/')) {
-    res.writeHead(404);
-    res.end('Not Found');
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not Found' }));
     return;
   }
   
@@ -45,7 +56,7 @@ const server = http.createServer(async (req, res) => {
       if (path === '/api/update-key') {
         const requestData = JSON.parse(body);
         OPENAI_API_KEY = requestData.apiKey;
-        console.log('API key updated successfully');
+        console.log('✅ API key updated successfully');
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
@@ -99,7 +110,7 @@ const server = http.createServer(async (req, res) => {
           max_tokens: 2000
         };
         
-        console.log(`Making OpenAI API request with model: ${openaiModel}`);
+        console.log(`🤖 Making OpenAI API request with model: ${openaiModel}`);
         
         // Make request to OpenAI
         const openaiResponse = await fetch(`${OPENAI_API_URL}/chat/completions`, {
@@ -113,7 +124,7 @@ const server = http.createServer(async (req, res) => {
         
         if (!openaiResponse.ok) {
           const errorText = await openaiResponse.text();
-          console.error('OpenAI API error:', errorText);
+          console.error('❌ OpenAI API error:', errorText);
           
           let errorMessage = 'OpenAI API error';
           if (openaiResponse.status === 401) {
@@ -132,6 +143,7 @@ const server = http.createServer(async (req, res) => {
         }
         
         const openaiData = await openaiResponse.json();
+        console.log('✅ OpenAI API response received successfully');
         
         // Convert OpenAI response to Ollama format
         const ollamaResponse = {
@@ -149,7 +161,7 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: 'Endpoint not found' }));
       
     } catch (error) {
-      console.error('Proxy error:', error);
+      console.error('❌ Proxy error:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         error: `Proxy Error: ${error.message}`
@@ -158,14 +170,34 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
+// Error handling for the server
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use. Please stop any other processes using this port and try again.`);
+    process.exit(1);
+  } else {
+    console.error('❌ Server error:', error);
+  }
+});
+
 // Start the server
 server.listen(PORT, () => {
-  console.log(`Proxy server running at http://localhost:${PORT}`);
-  console.log(`Proxying requests to OpenAI API`);
+  console.log(`🚀 Proxy server running at http://localhost:${PORT}`);
+  console.log(`🔗 Proxying requests to OpenAI API`);
   
   if (OPENAI_API_KEY) {
     console.log('✅ OpenAI API key configured from environment variable');
   } else {
     console.log('⚠️  No API key found in environment. Users can set it through the chat interface.');
   }
+  
+  console.log('\n📋 Available endpoints:');
+  console.log('  GET  /api/health - Health check');
+  console.log('  GET  /api/tags - Available models');
+  console.log('  POST /api/update-key - Update API key');
+  console.log('  POST /api/generate - Generate AI response');
+  console.log('\n💡 To use the AI features, make sure to:');
+  console.log('  1. Keep this proxy server running');
+  console.log('  2. Set your OpenAI API key in the chat interface');
+  console.log('  3. Refresh the frontend application');
 });

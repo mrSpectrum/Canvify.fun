@@ -7,7 +7,9 @@
     "start": "node js/proxy-server.js",
     "build": "echo 'Build completed - this is a static HTML project'",
     "dev": "npx serve -s . -l 8000",
-    "proxy": "node js/proxy-server.js"
+    "proxy": "node js/proxy-server.js",
+    "dev:full": "concurrently \"npm run proxy\" \"npm run dev\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "ai",
@@ -19,7 +21,8 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "serve": "^14.2.1"
+    "serve": "^14.2.1",
+    "concurrently": "^7.6.0"
   },
   "dependencies": {
     "node-fetch": "^2.7.0"
