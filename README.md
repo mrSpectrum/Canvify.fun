@@ -48,7 +48,7 @@ A comprehensive tool for planning, analyzing, and managing AI projects with an i
 ```
 ├── index.html              # Main application entry point
 ├── css/                    
-│   ├── style.css          # Main application styling
+│   ├── style.css          # Main canvas styling
 │   └── scheduler.css      # Event scheduler specific styles
 ├── js/                     
 │   ├── script.js          # Main canvas functionality
@@ -78,24 +78,37 @@ A comprehensive tool for planning, analyzing, and managing AI projects with an i
    npm install
    ```
 
-3. **Set up OpenAI API key**
+3. **Set up OpenAI API key (Optional)**
    ```bash
    export OPENAI_API_KEY=your_openai_api_key_here
    ```
-   Or update the key directly in `js/proxy-server.js`
+   *Note: You can also set the API key directly in the chat interface*
 
-4. **Start the proxy server**
+4. **Start the application (IMPORTANT - Use this command)**
+   ```bash
+   npm run dev:full
+   ```
+   
+   **⚠️ Important**: Always use `npm run dev:full` instead of `npm run dev`. This command starts both:
+   - The proxy server (required for AI features) on port 3000
+   - The frontend development server on port 8000
+
+5. **Open your browser**
+   Navigate to `http://localhost:8000`
+
+### Alternative: Manual Setup
+
+If you prefer to start services separately:
+
+1. **Start the proxy server** (in one terminal)
    ```bash
    npm run proxy
    ```
 
-5. **Start the development server**
+2. **Start the frontend server** (in another terminal)
    ```bash
    npm run dev
    ```
-
-6. **Open your browser**
-   Navigate to `http://localhost:8000`
 
 ## 💡 Usage
 
@@ -114,9 +127,35 @@ A comprehensive tool for planning, analyzing, and managing AI projects with an i
 
 ### AI Assistant
 1. Click the chat widget in the bottom-right corner
-2. Ask questions about your canvas or get improvement suggestions
-3. The assistant has context about your current canvas content
-4. Use different OpenAI models based on your needs
+2. Enter your OpenAI API key when prompted (first time only)
+3. Ask questions about your canvas or get improvement suggestions
+4. The assistant has context about your current canvas content
+5. Use different OpenAI models based on your needs
+
+## 🔧 Troubleshooting
+
+### "Proxy server check failed" Error
+This error occurs when the proxy server is not running. To fix:
+
+1. **Stop any running processes** (Ctrl+C)
+2. **Use the correct start command**:
+   ```bash
+   npm run dev:full
+   ```
+3. **Wait for both servers to start**:
+   - You should see: "🚀 Proxy server running at http://localhost:3000"
+   - And: "Local: http://localhost:8000"
+4. **Refresh your browser**
+
+### API Key Issues
+- The application will prompt you to enter your OpenAI API key in the chat interface
+- Your API key is stored locally in your browser
+- You can get an API key from: https://platform.openai.com/api-keys
+
+### Port Conflicts
+If you get "port already in use" errors:
+- Kill processes using ports 3000 or 8000
+- Or modify the ports in `package.json` and `js/proxy-server.js`
 
 ## 🎨 Design Features
 
@@ -154,10 +193,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🆘 Support
 
 If you encounter any issues or have questions:
-1. Check the troubleshooting section in the documentation
-2. Search existing issues on GitHub
-3. Create a new issue with detailed information
-4. Contact the development team
+1. Check the troubleshooting section above
+2. Ensure you're using `npm run dev:full` to start the application
+3. Verify both proxy server (port 3000) and frontend (port 8000) are running
+4. Check that your OpenAI API key is valid
+5. Create a new issue with detailed information if problems persist
 
 ## 🔮 Roadmap
 
