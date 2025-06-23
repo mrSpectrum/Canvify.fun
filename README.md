@@ -11,15 +11,12 @@ Key Features of the Scheduler
 
 Project Structure Update
 
-To accommodate the new scheduler feature, the project structure will be updated as follows:
 ├── index.html          # Main application entry point
 ├── css/
-│   ├── style.css       # Application styling
-│   └── scheduler.css    # Styles for the scheduler
+│   └── style.css       # Application styling
 ├── js/
 │   ├── script.js       # Main canvas functionality
 │   ├── chat.js         # AI assistant and chat widget
-│   ├── proxy-server.js # Node.js proxy for Ollama API
-│   └── scheduler.js     # Scheduler functionality
+│   └── proxy-server.js # Node.js proxy for Ollama API
 └── README.md           # Project documentation
 
